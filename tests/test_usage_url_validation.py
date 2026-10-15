@@ -14,6 +14,7 @@ from opencode_go_proxy.secrets import clear_api_key_cache
     ],
 )
 def test_invalid_usage_url_degrades_to_unknown(monkeypatch, url):
+    monkeypatch.delenv("OPENCODE_GO_PROXY_API_KEY_ENV", raising=False)
     monkeypatch.setenv("OPENCODE_GO_API_KEY", "test-only-key")
     monkeypatch.setenv("OPENCODE_GO_USAGE_URL", url)
     usage_poller.clear_cache()
