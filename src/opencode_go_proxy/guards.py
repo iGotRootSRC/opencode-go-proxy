@@ -72,7 +72,7 @@ def check_client(client_host: str, headers) -> None:
             "remote access is not securely configured",
             error_type="remote_auth_not_configured",
         )
-    if not hmac.compare_digest(supplied, expected):
+    if not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8")):
         raise ProxyError(
             HTTPStatus.UNAUTHORIZED,
             "valid remote caller token required",
@@ -112,3 +112,4 @@ def check_content_type(content_type: str | None) -> None:
             "Proxy requests require Content-Type: application/json.",
             error_type="unsupported_media_type",
         )
+
