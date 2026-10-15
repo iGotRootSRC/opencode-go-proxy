@@ -49,6 +49,8 @@ def _conversation_anchor(payload: dict[str, Any]) -> str:
         input_value = [input_value] if input_value is not None else []
     anchors: list[Any] = []
     for item in input_value:
+        if isinstance(item, str):
+            item = {"role": "user", "content": item}
         if isinstance(item, dict) and item.get("type") in {
             "compaction_trigger",
             "context_compaction",
@@ -57,7 +59,15 @@ def _conversation_anchor(payload: dict[str, Any]) -> str:
         # Prefer the opening user message: a shared system/developer prompt
         # does not identify a conversation, and later turns must not change it.
         if isinstance(item, dict) and item.get("role") == "user":
-            anchors = [item]
+            content = item.get("content", "")
+            if isinstance(content, list) and all(
+                isinstance(part, dict)
+                and part.get("type") in {"text", "input_text"}
+                and isinstance(part.get("text"), str)
+                for part in content
+            ):
+                content = "\n".join(part["text"] for part in content)
+            anchors = [{"role": "user", "content": content}]
             break
         if not anchors:
             anchors.append(item)
