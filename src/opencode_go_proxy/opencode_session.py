@@ -44,7 +44,7 @@ def _metadata_id(value: Any) -> str | None:
 
 
 def _conversation_anchor(payload: dict[str, Any]) -> str:
-    input_value = payload.get("input")
+    input_value = payload.get("input", payload.get("messages"))
     if not isinstance(input_value, list):
         input_value = [input_value] if input_value is not None else []
     anchors: list[Any] = []
@@ -54,9 +54,13 @@ def _conversation_anchor(payload: dict[str, Any]) -> str:
             "context_compaction",
         }:
             continue
-        anchors.append(item)
-        if len(anchors) == 2:
+        # Prefer the opening user message: a shared system/developer prompt
+        # does not identify a conversation, and later turns must not change it.
+        if isinstance(item, dict) and item.get("role") == "user":
+            anchors = [item]
             break
+        if not anchors:
+            anchors.append(item)
     source = anchors or [payload.get("instructions", "")]
     return json.dumps(source, sort_keys=True, separators=(",", ":"), default=str)
 
@@ -88,3 +92,4 @@ def opencode_session_headers(
 ) -> dict[str, str]:
     """Return the one stable affinity header OpenCode expects."""
     return {OPENCODE_SESSION_HEADER: resolve_opencode_session(headers, payload)}
+
