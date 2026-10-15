@@ -15,6 +15,7 @@ import json
 import math
 import os
 import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -178,16 +179,24 @@ def _cache_age_seconds() -> float | None:
 
 def _write_cache(payload: Json) -> None:
     """Persist a check result with mode 0600; a failed write is traced, never fatal."""
+    tmp_path = None
     try:
-        fd = os.open(_cache_path(), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, CACHE_MODE)
-    except OSError as exc:
-        trace("updates.cache_write_failed", error=str(exc))
-        return
-    try:
+        path = _cache_path()
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(prefix=".update-check-", dir=directory)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, separators=(",", ":"))
+        os.replace(tmp_path, path)
+        tmp_path = None
     except OSError as exc:
         trace("updates.cache_write_failed", error=str(exc))
+    finally:
+        if tmp_path is not None:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 def _info_from_cache(current: str, cached: Json) -> UpdateInfo:
