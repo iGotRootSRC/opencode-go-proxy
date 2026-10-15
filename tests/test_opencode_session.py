@@ -6,6 +6,21 @@ from opencode_go_proxy.opencode_session import resolve_opencode_session
 
 
 class SessionAffinityTests(unittest.TestCase):
+    def test_equivalent_opening_representations_keep_affinity(self):
+        expected = resolve_opencode_session({}, {"input": "Debug app A"})
+        for opening in (
+            {"role": "user", "content": "Debug app A"},
+            {"type": "message", "role": "user", "content": "Debug app A"},
+            {
+                "role": "user",
+                "content": [{"type": "input_text", "text": "Debug app A"}],
+            },
+            {"role": "user", "content": [{"type": "text", "text": "Debug app A"}]},
+        ):
+            self.assertEqual(
+                expected, resolve_opencode_session({}, {"input": [opening]})
+            )
+
     def test_followup_keeps_initial_affinity(self):
         for field in ("input", "messages"):
             with self.subTest(field=field):
