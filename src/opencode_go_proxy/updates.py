@@ -110,9 +110,12 @@ def _version_key(version: str | None) -> tuple[int, ...] | None:
     core = version.strip().lstrip("vV").split("+", 1)[0].split("-", 1)[0]
     parts: list[int] = []
     for part in core.split("."):
-        if not part.isdigit():
+        if not part.isascii() or not part.isdecimal():
             return None
-        parts.append(int(part))
+        try:
+            parts.append(int(part))
+        except ValueError:
+            return None
     return tuple(parts)
 
 
@@ -151,7 +154,7 @@ def _fetch_latest_release(timeout: int) -> Json:
     if isinstance(payload, list):
         payload = payload[0] if payload else {}
     if not isinstance(payload, dict):
-        raise TypeError(f"unexpected GitHub response shape: {type(payload).__name__}")
+        raise ValueError(f"unexpected GitHub response shape: {type(payload).__name__}")
     return payload
 
 
