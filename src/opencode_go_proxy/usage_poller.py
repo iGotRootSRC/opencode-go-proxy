@@ -120,12 +120,12 @@ def _fetch_usage(config: ProxyConfig) -> Json | None:
     }
 
     for _attempt in range(2):
-        request = urllib.request.Request(usage_url(), headers=headers)
         try:
+            request = urllib.request.Request(usage_url(), headers=headers)
             with urllib.request.urlopen(request, timeout=POLL_TIMEOUT_SEC) as response:
                 body = response.read()
                 break
-        except OSError:
+        except (OSError, ValueError):
             # URLError (incl. HTTPError) and socket.timeout are OSError subclasses.
             pass
     else:
@@ -138,3 +138,4 @@ def _fetch_usage(config: ProxyConfig) -> Json | None:
     if not isinstance(usage, dict):
         return None
     return usage
+
