@@ -110,9 +110,12 @@ def _version_key(version: str | None) -> tuple[int, ...] | None:
     core = version.strip().lstrip("vV").split("+", 1)[0].split("-", 1)[0]
     parts: list[int] = []
     for part in core.split("."):
-        if not part.isdigit():
+        if not part.isascii() or not part.isdecimal():
             return None
-        parts.append(int(part))
+        try:
+            parts.append(int(part))
+        except ValueError:
+            return None
     return tuple(parts)
 
 
@@ -191,6 +194,8 @@ def _info_from_cache(current: str, cached: Json) -> UpdateInfo:
     """Rebuild the UpdateInfo from a cached payload (types re-validated)."""
     latest = cached.get("latest")
     latest_str = latest if isinstance(latest, str) else None
+    if latest_str is not None and _version_key(latest_str) is None:
+        return _info_from_error(current, cached, ValueError("invalid release version"))
     release_url = cached.get("release_url")
     checked_at = cached.get("checked_at")
     error = cached.get("error")
@@ -208,6 +213,8 @@ def _info_from_error(current: str, cached: Json | None, exc: Exception) -> Updat
     """Degraded result for a failed live check: error set, last good values kept."""
     latest = cached.get("latest") if cached else None
     latest_str = latest if isinstance(latest, str) else None
+    if latest_str is not None and _version_key(latest_str) is None:
+        latest_str = None
     release_url = cached.get("release_url") if cached else None
     checked_at = _now_iso()
     info = UpdateInfo(
@@ -244,12 +251,15 @@ def check_for_updates(force: bool = False, timeout: int = 8) -> UpdateInfo:
 
     try:
         release = _fetch_latest_release(timeout)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as exc:
+        latest = _tag_without_v(release.get("tag_name"))
+        if latest is not None and _version_key(latest) is None:
+            raise ValueError("invalid release version")
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError, TypeError) as exc:
         return _info_from_error(current, cached, exc)
 
     info = UpdateInfo(
         current=current,
-        latest=_tag_without_v(release.get("tag_name")),
+        latest=latest,
         release_url=release.get("html_url") if isinstance(release.get("html_url"), str) else None,
         checked_at=_now_iso(),
         error=None,
