@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import os
 import subprocess
 import time
@@ -83,6 +84,8 @@ def _ttl_seconds() -> int:
     try:
         hours = float(raw)
     except ValueError:
+        return DEFAULT_TTL_SECONDS
+    if not math.isfinite(hours) or not math.isfinite(hours * 3600):
         return DEFAULT_TTL_SECONDS
     if hours <= 0:
         return 0
@@ -295,3 +298,4 @@ def version_payload(force: bool = False) -> Json:
             "release_url": info.release_url,
         },
     }
+
