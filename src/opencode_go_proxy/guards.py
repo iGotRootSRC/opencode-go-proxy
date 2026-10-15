@@ -72,7 +72,12 @@ def check_client(client_host: str, headers) -> None:
             "remote access is not securely configured",
             error_type="remote_auth_not_configured",
         )
-    if not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8")):
+    try:
+        # HTTP headers are decoded as Latin-1; recover their original wire bytes.
+        supplied_bytes = supplied.encode("latin-1")
+    except UnicodeEncodeError:
+        supplied_bytes = b""
+    if not hmac.compare_digest(supplied_bytes, expected.encode("utf-8")):
         raise ProxyError(
             HTTPStatus.UNAUTHORIZED,
             "valid remote caller token required",
