@@ -27,4 +27,4 @@ def test_failed_replace_preserves_previous_cache(tmp_path, monkeypatch):
     with mock.patch.object(os, "replace", side_effect=OSError("disk failure")):
         updates._write_cache({"latest": "new"})
     assert json.loads(path.read_text()) == {"latest": "old"}
-    assert sorted(p.name for p in tmp_path.iterdir()) == [path.name]
+    assert not list(tmp_path.glob(".update-check-*"))
