@@ -154,7 +154,7 @@ def _fetch_latest_release(timeout: int) -> Json:
     if isinstance(payload, list):
         payload = payload[0] if payload else {}
     if not isinstance(payload, dict):
-        raise ValueError(f"unexpected GitHub response shape: {type(payload).__name__}")
+        raise TypeError(f"unexpected GitHub response shape: {type(payload).__name__}")
     return payload
 
 
@@ -247,7 +247,7 @@ def check_for_updates(force: bool = False, timeout: int = 8) -> UpdateInfo:
 
     try:
         release = _fetch_latest_release(timeout)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as exc:
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError, TypeError) as exc:
         return _info_from_error(current, cached, exc)
 
     info = UpdateInfo(
