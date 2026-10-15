@@ -185,9 +185,12 @@ def _local_day(value: Any, now: datetime.datetime) -> str | None:
         instant = datetime.datetime.fromisoformat(value)
     except ValueError:
         return None
-    if instant.tzinfo is None:
-        instant = instant.replace(tzinfo=datetime.UTC)
-    return instant.astimezone(now.tzinfo).date().isoformat()
+    try:
+        if instant.tzinfo is None:
+            instant = instant.replace(tzinfo=datetime.UTC)
+        return instant.astimezone(now.tzinfo).date().isoformat()
+    except (ValueError, OverflowError):
+        return None
 
 
 def _fingerprint(stat: os.stat_result) -> tuple[int, int, int, int]:
@@ -484,3 +487,4 @@ def record_usage_event(
                 except OSError:
                     # The fold is best-effort too; the next summary recovers it.
                     return
+
