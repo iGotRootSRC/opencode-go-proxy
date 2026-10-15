@@ -1,0 +1,17 @@
+import pytest
+
+from opencode_go_proxy import usage_poller
+from opencode_go_proxy.secrets import clear_api_key_cache
+
+
+@pytest.mark.parametrize("url", ["not-a-url", "https://[invalid"])
+def test_invalid_usage_url_degrades_to_unknown(monkeypatch, url):
+    monkeypatch.setenv("OPENCODE_GO_API_KEY", "test-only-key")
+    monkeypatch.setenv("OPENCODE_GO_USAGE_URL", url)
+    usage_poller.clear_cache()
+    clear_api_key_cache()
+    try:
+        assert usage_poller.poll_go_usage() is None
+    finally:
+        usage_poller.clear_cache()
+        clear_api_key_cache()
