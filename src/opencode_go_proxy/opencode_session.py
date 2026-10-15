@@ -44,19 +44,33 @@ def _metadata_id(value: Any) -> str | None:
 
 
 def _conversation_anchor(payload: dict[str, Any]) -> str:
-    input_value = payload.get("input")
+    input_value = payload.get("input", payload.get("messages"))
     if not isinstance(input_value, list):
         input_value = [input_value] if input_value is not None else []
     anchors: list[Any] = []
     for item in input_value:
+        if isinstance(item, str):
+            item = {"role": "user", "content": item}
         if isinstance(item, dict) and item.get("type") in {
             "compaction_trigger",
             "context_compaction",
         }:
             continue
-        anchors.append(item)
-        if len(anchors) == 2:
+        # Prefer the opening user message: a shared system/developer prompt
+        # does not identify a conversation, and later turns must not change it.
+        if isinstance(item, dict) and item.get("role") == "user":
+            content = item.get("content", "")
+            if isinstance(content, list) and all(
+                isinstance(part, dict)
+                and part.get("type") in {"text", "input_text"}
+                and isinstance(part.get("text"), str)
+                for part in content
+            ):
+                content = "\n".join(part["text"] for part in content)
+            anchors = [{"role": "user", "content": content}]
             break
+        if not anchors:
+            anchors.append(item)
     source = anchors or [payload.get("instructions", "")]
     return json.dumps(source, sort_keys=True, separators=(",", ":"), default=str)
 
@@ -88,3 +102,4 @@ def opencode_session_headers(
 ) -> dict[str, str]:
     """Return the one stable affinity header OpenCode expects."""
     return {OPENCODE_SESSION_HEADER: resolve_opencode_session(headers, payload)}
+
