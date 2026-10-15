@@ -9,6 +9,7 @@ returns None and never raises, so /state always keeps its stable shape.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import threading
@@ -125,7 +126,7 @@ def _fetch_usage(config: ProxyConfig) -> Json | None:
             with urllib.request.urlopen(request, timeout=POLL_TIMEOUT_SEC) as response:
                 body = response.read()
                 break
-        except (OSError, ValueError):
+        except (OSError, ValueError, http.client.HTTPException):
             # URLError (incl. HTTPError) and socket.timeout are OSError subclasses.
             pass
     else:
