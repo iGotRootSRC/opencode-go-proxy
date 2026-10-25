@@ -16,6 +16,18 @@ from opencode_go_proxy.protocol import (
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_exec_command_boolean_arguments(self) -> None:
+        output = protocol.chat_message_to_response_output({"tool_calls": [{
+            "function": {
+                "name": "exec_command",
+                "arguments": '{"cmd":"echo false","login":"false","tty":"true"}',
+            },
+        }]})
+        self.assertEqual(
+            json.loads(output[0]["arguments"]),
+            {"cmd": "echo false", "login": False, "tty": True},
+        )
+
     def test_string_input_maps_to_user_message(self) -> None:
         chat, _model, stats = responses_payload_to_chat_payload(
             {"model": "deepseek-v4-flash", "instructions": "be terse", "input": "hello"}

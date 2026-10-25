@@ -743,6 +743,22 @@ def chat_completion_to_response(
     }
 
 
+def _normalize_exec_command_arguments(arguments: str) -> str:
+    try:
+        params = json.loads(arguments)
+    except ValueError:
+        return arguments
+    if not isinstance(params, dict):
+        return arguments
+    changed = False
+    for key in ("login", "tty"):
+        value = params.get(key)
+        if isinstance(value, str) and value.lower() in ("true", "false"):
+            params[key] = value.lower() == "true"
+            changed = True
+    return json.dumps(params) if changed else arguments
+
+
 def chat_message_to_response_output(message: Json) -> list[Json]:
     output: list[Json] = []
     reasoning = message.get("reasoning_content")
@@ -769,12 +785,15 @@ def chat_message_to_response_output(message: Json) -> list[Json]:
             ns, _, n = flat_name.rpartition("__")
             if ns and n:
                 namespace, name = ns, n
+        arguments = function.get("arguments", "{}")
+        if flat_name == "exec_command" and isinstance(arguments, str):
+            arguments = _normalize_exec_command_arguments(arguments)
         item: Json = {
             "type": "function_call",
             "id": f"fc_{uuid.uuid4().hex}",
             "call_id": tool_call.get("id") or f"call_{uuid.uuid4().hex}",
             "name": name,
-            "arguments": function.get("arguments", "{}"),
+            "arguments": arguments,
             "status": "completed",
         }
         if namespace:
